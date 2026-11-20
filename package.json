@@ -1,0 +1,24 @@
+{
+  "name": "calculator",
+  "private": true,
+  "version": "0.1.0",
+  "description": "IPython calculator with frameless chrome paired to the text-editor.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.3"
+  }
+}

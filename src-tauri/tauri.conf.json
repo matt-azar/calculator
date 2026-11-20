@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Calculator",
+  "version": "0.1.0",
+  "identifier": "com.calculator.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Calculator",
+        "width": 720,
+        "height": 480,
+        "minWidth": 240,
+        "minHeight": 240,
+        "decorations": false,
+        "shadow": true,
+        "center": true,
+        "resizable": true,
+        "visible": false,
+        "dragDropEnabled": false,
+        "zoomHotkeysEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "shortDescription": "IPython calculator for the taskbar",
+    "longDescription": "Calculator opens a resizable IPython console with common math helpers already imported.",
+    "category": "Utility",
+    "resources": [
+      "resources/preload.py",
+      "resources/app.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
+  }
+}

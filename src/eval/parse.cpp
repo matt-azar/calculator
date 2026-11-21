@@ -79,15 +79,18 @@ class Parser {
 
   bool ParseProduct(Value* out, EvalError* err) {
     if (!ParseFactor(out, err)) return false;
-    while (Peek().kind == TokenKind::Star || Peek().kind == TokenKind::Slash) {
+    while (Peek().kind == TokenKind::Star || Peek().kind == TokenKind::Slash ||
+           Peek().kind == TokenKind::Percent) {
       const TokenKind op = Peek().kind;
       Advance();
       Value rhs;
       if (!ParseFactor(&rhs, err)) return false;
       if (op == TokenKind::Star) {
         if (!ApplyMul(*out, rhs, out, err)) return false;
-      } else {
+      } else if (op == TokenKind::Slash) {
         if (!ApplyDiv(*out, rhs, out, err)) return false;
+      } else {
+        if (!ApplyMod(*out, rhs, out, err)) return false;
       }
     }
     return true;
@@ -108,9 +111,13 @@ class Parser {
     return ParsePower(out, err);
   }
 
-  // Python: power = atom trailer* ['**' factor]
+  // power = atom ['!']* ['**' factor]  — postfix ! is factorial (binds tighter than **)
   bool ParsePower(Value* out, EvalError* err) {
     if (!ParseAtom(out, err)) return false;
+    while (Peek().kind == TokenKind::Bang) {
+      Advance();
+      if (!CallBuiltin("factorial", {*out}, out, err)) return false;
+    }
     if (Peek().kind == TokenKind::StarStar) {
       Advance();
       Value exp;
@@ -288,6 +295,33 @@ class Parser {
     }
     // Python 3 true division always yields float.
     *out = Value::Float(a.as_float() / y);
+    return true;
+  }
+
+  // Python-style remainder (sign follows divisor), same precedence as * /.
+  static bool ApplyMod(const Value& a, const Value& b, Value* out, EvalError* err) {
+    if (!a.is_number() || !b.is_number()) {
+      err->message = "modulo requires numbers";
+      return false;
+    }
+    const double y = b.as_float();
+    if (y == 0.0) {
+      err->message = "modulo by zero";
+      return false;
+    }
+    if (a.kind == ValueKind::Int && b.kind == ValueKind::Int) {
+      // C++ % truncates toward zero; Python uses floor-mod. Match Python.
+      const std::int64_t x = a.i;
+      const std::int64_t m = b.i;
+      std::int64_t r = x % m;
+      if (r != 0 && ((r < 0) != (m < 0))) r += m;
+      *out = Value::Int(r);
+      return true;
+    }
+    const double x = a.as_float();
+    double r = std::fmod(x, y);
+    if (r != 0.0 && ((r < 0) != (y < 0))) r += y;
+    *out = Value::Float(r);
     return true;
   }
 

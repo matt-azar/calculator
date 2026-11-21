@@ -52,13 +52,32 @@ Examples:
 
 ```text
 sin(pi/2)
+factorial(5)
+5!
+comb(10, 3)
+10 % 3
 mean([1, 2, 3, 4])
 x = 2**10
 x + 1
 _
 ```
 
-Python-style `**`: `-2**2` → `-4`, `2**-3` → `0.125`, `2**3**2` → `512`.
+Python-style `**`: `-2**2` → `-4`, `2**-3` → `0.125`, `2**3**2` → `512`.  
+Also: `%` (remainder), postfix `!` / `factorial`, `comb`/`perm`, `gcd`/`lcm`, hyperbolics, `hypot`, `degrees`/`radians`, `cbrt`, `clamp`, …
+
+### Built-in functions
+
+| Group | Names |
+| --- | --- |
+| Trig | `sin` `cos` `tan` `asin` `acos` `atan` `atan2` |
+| Hyperbolic | `sinh` `cosh` `tanh` `asinh` `acosh` `atanh` |
+| Exp / log / roots | `sqrt` `cbrt` `exp` `expm1` `log`/`ln` `log10` `log2` `log1p` `pow` |
+| Rounding | `abs` `floor` `ceil` `round` `trunc` `sign`/`sgn` |
+| Angles | `degrees` `radians` |
+| Combinatorics | `factorial`/`fact` `!` `comb`/`nCr` `perm`/`nPr` `gcd` `lcm` |
+| Misc | `hypot` `mod` `%` `clamp` |
+| Lists | `sum` `mean` `median` `min` `max` `stdev` `pstdev` `len` |
+| Constants | `pi` `e` |
 
 ## Launch benchmarks
 

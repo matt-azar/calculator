@@ -95,6 +95,8 @@ TokenizeResult Tokenize(const std::string& src) {
       case '-': push(TokenKind::Minus, i, "-"); break;
       case '*': push(TokenKind::Star, i, "*"); break;
       case '/': push(TokenKind::Slash, i, "/"); break;
+      case '%': push(TokenKind::Percent, i, "%"); break;
+      case '!': push(TokenKind::Bang, i, "!"); break;
       case '(': push(TokenKind::LParen, i, "("); break;
       case ')': push(TokenKind::RParen, i, ")"); break;
       case '[': push(TokenKind::LBracket, i, "["); break;

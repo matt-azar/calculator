@@ -2,8 +2,8 @@
 
 #include <windows.h>
 
-// Phase 1: show a focused EDIT as fast as possible.
-// No evaluator init, prefs load, or history I/O on this path.
+// Show a focused EDIT as fast as possible.
+// Evaluator/session are constructed on first Enter only — not on this path.
 int APIENTRY wWinMain(
     _In_ HINSTANCE instance,
     _In_opt_ HINSTANCE /*prev*/,

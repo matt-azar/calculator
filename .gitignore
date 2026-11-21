@@ -21,6 +21,7 @@ CMakeUserPresets.json
 *.pdb
 *.ilk
 *.obj
+last_result.txt
 
 # Editor directories and files
 .vscode/*

@@ -10,10 +10,22 @@ Native **C++ / Win32** x64 calculator for Windows with an **in-process** math ev
 
 ## Build (MSVC x64 Release)
 
+If `cmake -G "Visual Studio 17 2022"` fails and only lists Unix Makefiles / Ninja, your PATH is picking **MSYS/MinGW CMake** (`C:\msys64\usr\bin\cmake.exe`). Use Visual Studio’s CMake instead (or open a **x64 Native Tools** / VS Developer prompt):
+
+```bat
+set CMAKE="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+%CMAKE% -S . -B build -G "Visual Studio 17 2022" -A x64
+%CMAKE% --build build --config Release
+```
+
+Or, with VS CMake already first on `PATH`:
+
 ```bat
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
+
+Helper: `build.cmd` (finds VS CMake and builds Release).
 
 | Target | Path |
 | --- | --- |

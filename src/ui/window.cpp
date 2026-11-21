@@ -1,6 +1,7 @@
 #include "ui/window.hpp"
 
 #include <string>
+#include <vector>
 
 namespace calc::ui {
 namespace {
@@ -36,6 +37,102 @@ void FocusEdit(AppState* state) {
 
 AppState* StateFromHwnd(HWND hwnd) {
   return reinterpret_cast<AppState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+}
+
+std::string NarrowUtf8(const std::wstring& ws) {
+  if (ws.empty()) return {};
+  const int n = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), static_cast<int>(ws.size()), nullptr, 0,
+                                    nullptr, nullptr);
+  if (n <= 0) return {};
+  std::string out(static_cast<size_t>(n), '\0');
+  WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), static_cast<int>(ws.size()), out.data(), n, nullptr,
+                      nullptr);
+  return out;
+}
+
+std::wstring WidenUtf8(const std::string& s) {
+  if (s.empty()) return {};
+  const int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), nullptr, 0);
+  if (n <= 0) return {};
+  std::wstring out(static_cast<size_t>(n), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), out.data(), n);
+  return out;
+}
+
+std::wstring GetEditText(HWND edit) {
+  const int len = GetWindowTextLengthW(edit);
+  std::wstring buf(static_cast<size_t>(len) + 1, L'\0');
+  GetWindowTextW(edit, buf.data(), len + 1);
+  buf.resize(static_cast<size_t>(len));
+  return buf;
+}
+
+void AppendResultLine(HWND result, const std::wstring& line) {
+  const int len = GetWindowTextLengthW(result);
+  SendMessageW(result, EM_SETSEL, len, len);
+  std::wstring chunk = line + L"\r\n";
+  SendMessageW(result, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(chunk.c_str()));
+}
+
+void EnsureSession(AppState* state) {
+  if (!state->session) {
+    state->session = std::make_unique<calc::eval::Session>();
+  }
+}
+
+void EvaluateCurrentLine(HWND hwnd, AppState* state) {
+  EnsureSession(state);
+  const std::wstring wline = GetEditText(state->edit);
+  const std::string line = NarrowUtf8(wline);
+
+  std::string result;
+  std::string error;
+  if (state->session->EvalLine(line, &result, &error)) {
+    AppendResultLine(state->result, L">>> " + wline);
+    AppendResultLine(state->result, WidenUtf8(result));
+    SetWindowTextW(state->edit, L"");
+  } else {
+    AppendResultLine(state->result, L">>> " + wline);
+    AppendResultLine(state->result, L"Error: " + WidenUtf8(error));
+  }
+  (void)hwnd;
+}
+
+void HistoryNavigate(AppState* state, bool up) {
+  if (!state->session) {
+    // No history until the first successful Enter creates the session.
+    return;
+  }
+  std::string line;
+  const bool ok = up ? state->session->HistoryUp(&line) : state->session->HistoryDown(&line);
+  if (!ok) return;
+  SetWindowTextW(state->edit, WidenUtf8(line).c_str());
+  SendMessageW(state->edit, EM_SETSEL, static_cast<WPARAM>(-1), static_cast<WPARAM>(-1));
+}
+
+LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+  HWND parent = GetParent(hwnd);
+  AppState* state = parent ? StateFromHwnd(parent) : nullptr;
+  if (!state || !state->edit_prev_proc) {
+    return DefWindowProcW(hwnd, msg, wparam, lparam);
+  }
+
+  if (msg == WM_KEYDOWN) {
+    if (wparam == VK_RETURN) {
+      EvaluateCurrentLine(parent, state);
+      return 0;
+    }
+    if (wparam == VK_UP) {
+      HistoryNavigate(state, true);
+      return 0;
+    }
+    if (wparam == VK_DOWN) {
+      HistoryNavigate(state, false);
+      return 0;
+    }
+  }
+
+  return CallWindowProcW(state->edit_prev_proc, hwnd, msg, wparam, lparam);
 }
 
 }  // namespace
@@ -99,6 +196,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         return -1;
       }
 
+      // Intentionally do not construct Session here — first Enter only.
+
       state->font = CreateFontW(
           -16,
           0,
@@ -132,8 +231,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
       state->result = CreateWindowExW(
           WS_EX_CLIENTEDGE,
           L"EDIT",
-          L"Phase 1 — expression result area (evaluator arrives in Phase 2).\r\n"
-          L"Type, edit, and paste in the field above.",
+          L"Enter an expression and press Enter.\r\n"
+          L"Up/Down recalls input history (after the first evaluation).",
           WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
           0,
           0,
@@ -152,6 +251,9 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         SendMessageW(state->edit, WM_SETFONT, reinterpret_cast<WPARAM>(state->font), TRUE);
         SendMessageW(state->result, WM_SETFONT, reinterpret_cast<WPARAM>(state->font), TRUE);
       }
+
+      state->edit_prev_proc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(
+          state->edit, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(EditSubclassProc)));
 
       LayoutChildren(hwnd, state);
       return 0;
@@ -183,9 +285,17 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 
     case WM_DESTROY: {
       auto* state = StateFromHwnd(hwnd);
-      if (state && state->font) {
-        DeleteObject(state->font);
-        state->font = nullptr;
+      if (state) {
+        if (state->edit && state->edit_prev_proc) {
+          SetWindowLongPtrW(state->edit, GWLP_WNDPROC,
+                            reinterpret_cast<LONG_PTR>(state->edit_prev_proc));
+          state->edit_prev_proc = nullptr;
+        }
+        state->session.reset();
+        if (state->font) {
+          DeleteObject(state->font);
+          state->font = nullptr;
+        }
       }
       PostQuitMessage(0);
       return 0;

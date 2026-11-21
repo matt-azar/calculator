@@ -1,63 +1,69 @@
 # Calculator
 
-Windows taskbar calculator that opens a **resizable IPython console** with common math helpers already imported. The window frame and theme pair with [matt-azar/text-editor](https://origin.cursor.com/matt-azar/text-editor): frameless Tauri 2 chrome, 36px custom titlebar, shared CSS tokens, Segoe UI Variable Text.
+Native **C++ / Win32** x64 calculator for Windows. Phase 1 ships a minimal focused `EDIT` window and an external launch-benchmark harness. The math evaluator arrives in Phase 2 (in-process C++; no Python runtime).
 
-Try:
-
-```python
-sin(pi/2)
-mean([1, 2, 3, 4])
-_
-```
+Primary metric: **cold launch → first keystroke visibly appearing in the input field**.
 
 ## Requirements
 
-- Node.js 18+ and npm
-- Rust (stable) with Tauri 2 prerequisites
-- Python 3 with IPython: `pip install ipython`
-- Windows recommended for the full desktop experience (NSIS packaging is Windows-first). Linux/macOS can run `tauri dev` for the shell + PTY prototype if WebKit/GTK deps are installed.
+- Windows x64
+- Visual Studio 2022 with **Desktop development with C++** (MSVC)
+- CMake 3.20+ (the CMake bundled with VS 2022 is fine)
 
-## Develop
+## Build (MSVC x64 Release)
 
-```bash
-npm install
-npm run tauri -- dev
+From a **x64 Native Tools** / Developer PowerShell for VS 2022, or after `vcvars64.bat`:
+
+```bat
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
 ```
 
-This starts Vite on port 1420 and opens the frameless Calculator window with a live IPython session.
+Artifacts:
 
-Frontend-only (no PTY):
+| Target | Path |
+| --- | --- |
+| Calculator | `build\Release\calculator.exe` |
+| Launch harness | `build\Release\launch_bench.exe` |
 
-```bash
-npm run dev
+## Run
+
+```bat
+build\Release\calculator.exe
 ```
 
-## Build (Windows installer)
+The window uses a standard Win32 frame. On activate, focus goes to the single-line expression field so typing, editing, and paste work immediately. Phase 1 does **not** initialize an evaluator, prefs, or history on the launch path.
 
-```bash
-npm run tauri -- build -- --bundles nsis
+## Launch benchmark
+
+```bat
+build\Release\launch_bench.exe --exe build\Release\calculator.exe --runs 21 --out docs\bench-phase1-warm.csv
 ```
 
-The installer product name is **Calculator** (`com.calculator.app`) so it does not collide with the text-editor when pinned to the taskbar.
+The harness records, per launch:
 
-## What’s in v1
+1. Process create (`CreateProcessW` return)
+2. First visible main window (`Calculator.Win32.Phase1`)
+3. First keyboard event whose character appears in the `EDIT` field
 
-- Frameless titlebar matching the text-editor (brand mark, drag region, min / max / close)
-- Dark default theme; **View → Light Mode** (or Ctrl+M) with local persistence
-- Real IPython over a PTY (`portable-pty` + xterm.js)
-- Stdlib math preload: `math`, selected `cmath`, and `statistics` helpers in the interactive namespace
+It prints **median** and **p95** for successful samples. See `docs/benchmarks-phase1.md` for numbers from ma1pc.
 
-## Still to do
-
-- Distinct polished app icon / AppUserModelID tuning for Windows taskbar pinning
-- NSIS packaging smoke-test on a Windows machine
-- Optional later: numpy/sympy opt-in, degrees mode, history polish
-
-## Layout
+## Layout (Phase 1)
 
 ```
-index.html          # frameless shell + titlebar + terminal host
-src/                # theme, chrome, xterm ↔ PTY bridge
-src-tauri/          # Tauri 2 app + portable-pty IPython session
-python/preload.py   # math namespace injected at IPython startup
+CMakeLists.txt
+src/main.cpp              # wWinMain (QPC timestamp on first line)
+src/ui/window.hpp|cpp     # frame, EDIT, result area, focus-on-activate
+tools/launch_bench/       # external launch → visible → keystroke harness
+docs/benchmarks-phase1.md
 ```
+
+## Status
+
+| Phase | Status |
+| --- | --- |
+| 1 — Minimal window + harness | In progress (this tree) |
+| 2 — In-process math evaluator | Not started |
+| 3 — Finished-build verification | Not started |
+
+The earlier Tauri + IPython prototype remains in-tree for history but is **superseded** by this native Win32 direction.

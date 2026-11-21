@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# CMake / MSVC
+/build/
+/out/
+/cmake-build-*/
+CMakeUserPresets.json
+*.vcxproj.user
+*.pdb
+*.ilk
+*.obj
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -20,7 +30,6 @@ dist-ssr
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
 
 # Tauri icon CLI mobile outputs

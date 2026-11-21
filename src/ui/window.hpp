@@ -12,6 +12,11 @@ inline constexpr wchar_t kWindowTitle[] = L"Calculator";
 inline constexpr wchar_t kWwMainStartProp[] = L"Calculator.WwMainStartQpc";
 inline constexpr int kEditId = 1001;
 inline constexpr int kResultId = 1002;
+// External harness / automation:
+//   PostMessage(main, kMsgEvaluate, 0, 0) → evaluate current EDIT text
+//   WM_COPYDATA with dwData=kCopyDataEval → evaluate UTF-16 payload (preferred)
+inline constexpr UINT kMsgEvaluate = WM_APP + 1;
+inline constexpr ULONG_PTR kCopyDataEval = 0x43414C43;  // 'CALC'
 
 struct AppState {
   HWND edit = nullptr;

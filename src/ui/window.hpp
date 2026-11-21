@@ -1,5 +1,8 @@
 #pragma once
 
+#include "eval/session.hpp"
+
+#include <memory>
 #include <windows.h>
 
 namespace calc::ui {
@@ -14,6 +17,9 @@ struct AppState {
   HWND edit = nullptr;
   HWND result = nullptr;
   HFONT font = nullptr;
+  WNDPROC edit_prev_proc = nullptr;
+  // Constructed on first Enter only — never on the launch path.
+  std::unique_ptr<calc::eval::Session> session;
 };
 
 // Creates the main window + child controls. Caller owns the returned HWND.

@@ -83,6 +83,26 @@ int main() {
   ExpectInt(Eval("(2 + 3) * 4", &env), 20, "(2 + 3) * 4 == 20");
   ExpectFloatNear(Eval("10 / 4", &env), 2.5, 1e-12, "10 / 4 == 2.5");
 
+  // Expanded builtins / operators.
+  ExpectInt(Eval("factorial(5)", &env), 120, "factorial(5) == 120");
+  ExpectInt(Eval("5!", &env), 120, "5! == 120");
+  ExpectInt(Eval("fact(0)", &env), 1, "fact(0) == 1");
+  ExpectInt(Eval("comb(10, 3)", &env), 120, "comb(10, 3) == 120");
+  ExpectInt(Eval("perm(5, 2)", &env), 20, "perm(5, 2) == 20");
+  ExpectInt(Eval("gcd(54, 24)", &env), 6, "gcd(54, 24) == 6");
+  ExpectInt(Eval("lcm(4, 6)", &env), 12, "lcm(4, 6) == 12");
+  ExpectInt(Eval("10 % 3", &env), 1, "10 % 3 == 1");
+  ExpectInt(Eval("mod(-7, 3)", &env), 2, "mod(-7, 3) == 2");  // Python-style
+  ExpectFloatNear(Eval("hypot(3, 4)", &env), 5.0, 1e-12, "hypot(3, 4) == 5");
+  ExpectFloatNear(Eval("degrees(pi)", &env), 180.0, 1e-9, "degrees(pi) == 180");
+  ExpectFloatNear(Eval("radians(180)", &env), 3.141592653589793, 1e-12, "radians(180) == pi");
+  ExpectFloatNear(Eval("cbrt(8)", &env), 2.0, 1e-12, "cbrt(8) == 2");
+  ExpectInt(Eval("sign(-2.5)", &env), -1, "sign(-2.5) == -1");
+  ExpectFloatNear(Eval("clamp(5, 0, 3)", &env), 3.0, 1e-12, "clamp(5, 0, 3) == 3");
+  ExpectFloatNear(Eval("sinh(0)", &env), 0.0, 1e-12, "sinh(0) == 0");
+  Expect(!session.EvalLine("factorial(-1)", &result, &error), "factorial(-1) errors");
+  Expect(!session.EvalLine("(-2)!", &result, &error), "(-2)! errors");
+
   if (g_failed) {
     std::cerr << g_failed << " test(s) failed\n";
     return 1;

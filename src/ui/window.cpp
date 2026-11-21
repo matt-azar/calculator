@@ -284,7 +284,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
       state->result = CreateWindowExW(
           WS_EX_CLIENTEDGE,
           L"EDIT",
-          L"Enter an expression and press Enter.\r\n"
+          L"Enter an expression and press Enter (e.g. 5!, sin(pi/2), comb(10,3)).\r\n"
           L"Up/Down recalls input history (after the first evaluation).",
           WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
           0,

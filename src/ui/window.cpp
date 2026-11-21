@@ -164,6 +164,8 @@ LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
 
   if (msg == WM_KEYDOWN) {
     if (wparam == VK_RETURN) {
+      // Evaluate once on key-down. TranslateMessage still posts WM_CHAR '\r'
+      // afterward; that must not re-run eval on the cleared EDIT (empty expression).
       EvaluateCurrentLine(parent, state);
       return 0;
     }
@@ -176,9 +178,10 @@ LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
       return 0;
     }
   }
-  // Some input paths deliver Enter as WM_CHAR '\r'.
+  // Swallow CR/LF from TranslateMessage (and lone WM_CHAR Enter). Do not evaluate
+  // here — that double-fired after VK_RETURN and replaced a good result with
+  // "Error: empty expression". Automation should use WM_COPYDATA / WM_APP+1.
   if (msg == WM_CHAR && (wparam == L'\r' || wparam == L'\n')) {
-    EvaluateCurrentLine(parent, state);
     return 0;
   }
 

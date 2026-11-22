@@ -68,11 +68,16 @@ std::wstring GetEditText(HWND edit) {
   return buf;
 }
 
-void AppendResultLine(HWND result, const std::wstring& line) {
+void AppendResultText(HWND result, const std::wstring& text) {
+  // Terminal-style transcript: append and keep the caret/view at the bottom.
   const int len = GetWindowTextLengthW(result);
   SendMessageW(result, EM_SETSEL, len, len);
-  std::wstring chunk = line + L"\r\n";
-  SendMessageW(result, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(chunk.c_str()));
+  SendMessageW(result, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(text.c_str()));
+  SendMessageW(result, EM_SCROLLCARET, 0, 0);
+}
+
+void AppendResultLine(HWND result, const std::wstring& line) {
+  AppendResultText(result, line + L"\r\n");
 }
 
 void EnsureSession(AppState* state) {
@@ -108,30 +113,35 @@ void EvaluateLine(AppState* state, const std::wstring& wline) {
   if (!state || !state->result) {
     return;
   }
+  const bool first_eval = (state->session == nullptr);
   EnsureSession(state);
-  const std::string line = NarrowUtf8(wline);
+  if (first_eval) {
+    // Drop the launch hint so the pane becomes a growing REPL transcript.
+    SetWindowTextW(state->result, L"");
+  }
 
+  const std::string line = NarrowUtf8(wline);
   std::string result;
   std::string error;
   const bool ok = state->session->EvalLine(line, &result, &error);
-  // Replace the whole result pane so interactive use stays clear.
-  std::wstring pane;
-  pane += L">>> ";
-  pane += wline;
-  pane += L"\r\n";
+
+  std::wstring chunk;
+  chunk += L">>> ";
+  chunk += wline;
+  chunk += L"\r\n";
   if (ok) {
-    pane += WidenUtf8(result);
-    pane += L"\r\n";
-    SetWindowTextW(state->result, pane.c_str());
+    chunk += WidenUtf8(result);
+    chunk += L"\r\n";
+    AppendResultText(state->result, chunk);
     if (state->edit) {
       SetWindowTextW(state->edit, L"");
     }
     WriteAutomationResult(result);
   } else {
-    pane += L"Error: ";
-    pane += WidenUtf8(error);
-    pane += L"\r\n";
-    SetWindowTextW(state->result, pane.c_str());
+    chunk += L"Error: ";
+    chunk += WidenUtf8(error);
+    chunk += L"\r\n";
+    AppendResultText(state->result, chunk);
     WriteAutomationResult(std::string("Error: ") + error);
   }
 }
@@ -285,7 +295,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
           WS_EX_CLIENTEDGE,
           L"EDIT",
           L"Enter an expression and press Enter (e.g. 5!, sin(pi/2), comb(10,3)).\r\n"
-          L"Up/Down recalls input history (after the first evaluation).",
+          L"Outputs append here like a terminal; scroll for earlier lines. Up/Down recalls inputs.",
           WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
           0,
           0,
@@ -299,6 +309,9 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
       if (!state->edit || !state->result) {
         return -1;
       }
+
+      // Default EDIT cap is ~32 KiB; allow a long scrollable session transcript.
+      SendMessageW(state->result, EM_SETLIMITTEXT, 0, 0);
 
       if (state->font) {
         SendMessageW(state->edit, WM_SETFONT, reinterpret_cast<WPARAM>(state->font), TRUE);

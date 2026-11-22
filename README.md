@@ -46,7 +46,8 @@ build\Release\calculator.exe
 - Standard Win32 frame; focus on the expression field on activate
 - Typing / editing / paste work immediately
 - **Evaluator/session created on first Enter only** (not on launch)
-- Up / Down recalls in-memory history after the first evaluation
+- Result pane is a **scrollable REPL transcript** (`>>>` input + output, append-only)
+- Up / Down recalls in-memory input history after the first evaluation
 
 Examples:
 
